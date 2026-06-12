@@ -29,8 +29,8 @@ interface IFactory {
         view
         returns (
             address factory, // 工厂地址
-            address tokenA, // 币地址
-            address tokenB, // 币地址
+            address token0, // 币地址
+            address token1, // 币地址
             int24 tickLower, // tick 下界
             int24 tickUpper, // tick 上界
             uint24 fee // 手续费

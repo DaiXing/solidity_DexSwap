@@ -7,10 +7,10 @@ import "./Pool.sol";
 
 // pool的工厂。
 contract Factory is IFactory {
-    // 全部的池子。
+    // 全部的池子。 token0 >> token1 >> poolIndex
     mapping(address => mapping(address => address[])) pools;
 
-    // 参数。
+    // 参数。 临时。 透传参数给pool实例。
     Parameters public override parameters;
 
     // 排序。 小 > 大

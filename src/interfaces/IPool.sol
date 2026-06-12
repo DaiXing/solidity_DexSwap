@@ -2,13 +2,13 @@
 pragma solidity ^0.8.20;
 
 interface IPool {
-    // 返回工厂地址
+    // 工厂地址
     function factory() external returns (address pool);
     // 币0
     function token0() external returns (address);
     // 币1
     function token1() external returns (address);
-    // 费率
+    // 手续费。费率
     function fee() external returns (uint24);
     // tick下界
     function tickLower() external returns (int24);
