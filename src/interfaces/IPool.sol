@@ -50,7 +50,7 @@ interface IPool {
         uint256 amount1 // token1 数量
     );
 
-    // 币铸造。
+    // 币铸造。 recipient 就是owner
     function mint(
         address recipient, // 归属人
         uint128 amount, // 数量。 流动性。
@@ -64,7 +64,8 @@ interface IPool {
         uint128 amount0, // 币0，数量
         uint128 amount1 // 币1，数量
     );
-    // 领取
+
+    // 领取 。 recipient 是to 。 owner 把币给 recipient 。
     function collect(
         address recipient, // 归属人
         uint128 amount0Requested, // 币0，要求数量
@@ -74,13 +75,14 @@ interface IPool {
     // 销毁。
     event Burn(
         address indexed owner, // 币的所有者。
-        uint128 amount,
+        uint128 amount, // 数量。 流动性。
         uint256 amount0, // 币0，数量
         uint256 amount1 // 币1，数量
     );
+
     // 销毁。
     function burn(
-        uint128 amount
+        uint128 amount // 数量。 流动性。
     ) external returns (uint256 amount0, uint256 amount1);
 
     // 交换。交易。

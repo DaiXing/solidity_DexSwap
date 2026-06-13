@@ -59,8 +59,8 @@ contract Pool is IPool {
     // 寸头。仓位。
     struct Position {
         uint128 liquidity; // 流动性
-        uint128 token0Owed; // 可提取的 token0 数量。手续费。
-        uint128 token1Owed; // 可提取的 token1 数量。手续费。
+        uint128 token0Owed; // 可提取的 token0 数量。本金+手续费。
+        uint128 token1Owed; // 可提取的 token1 数量。本金+手续费。
         uint256 feeGrowthInside0LastX128; // 上次提取手续费时的 feeGrowthGlobal0X128
         uint256 feeGrowthInside1LastX128; // 上次提取手续费时的 feeGrowthGlobal1X128
     }
@@ -257,5 +257,28 @@ contract Pool is IPool {
         address recipient, // 归属人
         uint128 amount0Requested, // 币0，要求数量
         uint128 amount1Requested // 币1，要求数量
-    ) external returns (uint256 amount0, uint256 amount1) {}
+    ) external returns (uint256 amount0, uint256 amount1) {
+        // owner的仓位。
+        Position storage pos = positions[msg.sender];
+
+        // 取小值。
+        amount0 = (amount0Requested > pos.token0Owed)
+            ? pos.token0Owed
+            : amount0Requested;
+        amount1 = (amount1Requested > pos.token1Owed)
+            ? pos.token1Owed
+            : amount1Requested;
+
+        // 转账。
+        if (amount0 > 0) {
+            pos.token0Owed -= amount0;
+            TransferHelper.safeTransfer(msg.sender, recipient, amount0);
+        }
+        if (amount1 > 0) {
+            pos.token1Owed -= amount1;
+            TransferHelper.safeTransfer(msg.sender, recipient, amount1);
+        }
+
+        emit Collect(msg.sender, recipient, amount0, amount1);
+    }
 }
