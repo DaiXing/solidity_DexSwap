@@ -9,15 +9,15 @@ interface IPositionManager is IERC721 {
     struct PositionInfo {
         uint256 id; // 仓位ID
         address owner; // 所有者
-        address token0; // 币1
+        address token0; // 币0
         address token1; // 币1
-        uint32 index;
+        uint32 index; // 池子下标
         uint24 fee; // 费率
         uint128 liquidity; // 流动性
         int24 tickLower; // tick下界
         int24 tickUpper; // tick下界
-        uint128 tokensOwed0; // 币0，持有数量
-        uint128 tokensOwed1; // 币1，持有数量
+        uint128 tokensOwed0; // 币0
+        uint128 tokensOwed1; // 币1
         uint256 feeGrowthInside0LastX128; // 币0，增量手续费
         uint256 feeGrowthInside1LastX128; // 币1，增量手续费
     }

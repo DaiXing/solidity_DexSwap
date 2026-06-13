@@ -124,4 +124,66 @@ contract PositionManager is IPositionManager, ERC721 {
             feeGrowthInside1LastX128: feeGrowthInside1LastX128
         });
     }
+
+    modifier isAuthorizedForToken(uint256 tokenId) {
+        address owner = ownerOf(tokenId);
+        require(_isAuthorized(owner, msg.sender, tokenId), "Not approved");
+        _;
+    }
+
+    // 销毁
+    function burn(
+        uint256 positionId // 仓位ID
+    )
+        external
+        returns (
+            uint256 amount0, // 币0，数量
+            uint256 amount1 // 币1，数量
+        )
+    {
+        // 头寸
+        PositionInfo storage pos = positions[positionId];
+        uint128 liquidity = pos.liquidity;
+
+        // 池子
+        address poolAddr = poolManager.getPool(
+            pos.token0,
+            pos.token1,
+            pos.index
+        );
+        IPool pool = IPool(poolAddr);
+
+        // 销毁。 pos的流动性。
+        (amount0, amount1) = pool.burn(liquidity);
+
+        // 累加数量。
+        pos.tokensOwed0 += amount0;
+        pos.tokensOwed1 += amount1;
+
+        // 流动性，对应的手续费。
+        (
+            ,
+            uint256 feeGrowthInside0LastX128,
+            uint256 feeGrowthInside1LastX128,
+            ,
+
+        ) = pool.getPosition(address(this));
+
+        // 累加手续费。
+        pos.tokensOwed0 += FullMath.mulDiv(
+            feeGrowthInside0LastX128 - pos.feeGrowthInside0LastX128,
+            liquidity,
+            FixedPoint128.Q128
+        );
+        pos.tokensOwed1 += FullMath.mulDiv(
+            feeGrowthInside1LastX128 - pos.feeGrowthInside1LastX128,
+            liquidity,
+            FixedPoint128.Q128
+        );
+
+        // 更新信息。
+        pos.feeGrowthInside0LastX128 = feeGrowthInside0LastX128;
+        pos.feeGrowthInside1LastX128 = feeGrowthInside1LastX128;
+        pos.liquidity = 0;
+    }
 }
