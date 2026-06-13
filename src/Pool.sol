@@ -323,8 +323,8 @@ contract Pool is IPool {
 
     // 交易的状态。 走完一个交易流程。
     struct SwapState {
-        int256 amountSpecifiedRemaining; // 剩余交换的数量
-        int256 amountCalculated; // 已经交换的数量
+        int256 amountSpecifiedRemaining; // 剩余交换的数量。正负。趋向0
+        int256 amountCalculated; // 已经交换的数量。正负。离开0
         uint160 sqrtPriceX96; // 当前价格
         uint256 feeGrowthGlobalX128; // input token 的手续费
         uint256 amountIn; // 转入，token0数量
@@ -361,8 +361,8 @@ contract Pool is IPool {
             );
         }
 
-        // 大于0，指定 token0 数量。
-        // 小于0，指定 token1 数量。
+        // 大于0，指定 input 数量。
+        // 小于0，指定 output 数量。
         bool exactInput = amountSpecified > 0;
 
         // 上下文。
@@ -374,12 +374,80 @@ contract Pool is IPool {
                 ? feeGrowthGlobal0X128
                 : feeGrowthGlobal1X128,
             amountIn: 0,
-            amountOut: 1,
+            amountOut: 0,
             feeAmount: 0
         });
 
         // 价格区间。
         uint160 priceLower = TickMath.getSqrtPriceAtTick(tickLower);
         uint160 priceUpper = TickMath.getSqrtPriceAtTick(tickUpper);
+
+        // 输入token0，则token0增加，token1减少，价格下降。
+        // 输入token1，则token1增加，token0减少，价格上升。
+        // 找到池子价格的限制。
+        uint160 pricePoolLimit = zeroForOne ? priceLower : priceUpper;
+
+        // 限制价格波动的目标。
+        // 不能高于或低于，某个价格。
+        uint160 sqrtRatioTargetX96 = 0;
+        if (zeroForOne) {
+            // 取下限的 max
+            sqrtRatioTargetX96 = (sqrtPriceLimitX96 > pricePoolLimit)
+                ? sqrtPriceLimitX96
+                : pricePoolLimit;
+        } else {
+            // 取上限的 min
+            sqrtRatioTargetX96 = (sqrtPriceLimitX96 < pricePoolLimit)
+                ? sqrtPriceLimitX96
+                : pricePoolLimit;
+        }
+
+        // 计算具体数字。
+        (
+            state.sqrtPriceX96,
+            state.amountIn,
+            state.amountOut,
+            state.feeAmount
+        ) = SwapMath.computeSwapStep(
+            sqrtPriceX96, // 当前价格
+            sqrtRatioTargetX96, // 限制价格
+            liquidity, // 流动性
+            amountSpecified, // 数量。
+            fee // 费率
+        );
+
+        // 更新价格。
+        sqrtPriceX96 = swapState.sqrtPriceX96;
+        tick = TickMath.getTickAtSqrtPrice(sqrtPriceX96);
+
+        // 计算手续费。
+        // 增量手续费 除以 流动性 = 单位手续费 。
+        swapState.feeGrowthGlobalX128 += FullMath.mulDiv(
+            swapState.feeAmount, // 本次的手续费。
+            FixedPoint128.Q128,
+            liquidity // 流动性
+        );
+
+        // 更新手续费。
+        if (zeroForOne) {
+            feeGrowthGlobal0X128 += swapState.feeGrowthGlobalX128;
+        } else {
+            feeGrowthGlobal1X128 += swapState.feeGrowthGlobalX128;
+        }
+
+        // 交易后，用户手中的token0、token1
+        int256 in256 = (swapState.amountIn + swapState.feeAmount).toInt256();
+        int256 out256 = swapState.amountOut.toInt256();
+        if (exactInput) {
+            // 正数。 input
+            swapState.amountSpecifiedRemaining -= in256;
+            // 负数。 output
+            swapState.amountCalculated -= out256;
+        } else {
+            // 负数。 output
+            swapState.amountSpecifiedRemaining += out256;
+            // 正数。 input
+            swapState.amountCalculated += in256;
+        }
     }
 }
