@@ -40,7 +40,7 @@ interface IFactory {
     function getPool(
         address tokenA, // 币地址
         address tokenB, // 币地址
-        uint32 index
+        uint32 index // 池子下标
     ) external returns (address pool);
 
     // 创建池子。

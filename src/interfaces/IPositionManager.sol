@@ -29,11 +29,11 @@ interface IPositionManager is IERC721 {
     struct MintParams {
         address token0; // 币0
         address token1; // 币1
-        uint32 index;
+        uint32 index; // 池子的下标。
         uint256 amount0Desired; // 币0，数量
         uint256 amount1Desired; // 币1，数量
         address recipient; // 持有人
-        uint256 deadline; // 截止时间
+        uint256 deadline; // 截止时间。过期了，就不执行了。
     }
 
     // 铸造。

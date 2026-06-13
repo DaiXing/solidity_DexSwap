@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+import "./IFactory.sol";
+
 // 池子过滤器。继承工厂。
 interface IPoolManager is IFactory {
     // 池子信息。
