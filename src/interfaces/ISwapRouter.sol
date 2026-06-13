@@ -18,7 +18,7 @@ interface ISwapRouter is ISwapCallback {
     struct ExactInputParams {
         address tokenIn; // 输入的币
         address tokenOut; // 输出的币
-        uint32[] indexPath;
+        uint32[] indexPath; // 池子下标。
         address recipient; // 归属人。
         uint256 deadline; // 截止时间
         uint256 amountIn; // 输入的数量
@@ -35,7 +35,7 @@ interface ISwapRouter is ISwapCallback {
     struct ExactOutputParams {
         address tokenIn; // 输入的币
         address tokenOut; // 输出的币
-        uint32[] indexPath;
+        uint32[] indexPath; // 池子下标。
         address recipient; // 归属人。
         uint256 deadline; // 截止时间
         uint256 amountOut; // 输出的数量
@@ -52,7 +52,7 @@ interface ISwapRouter is ISwapCallback {
     struct QuoteExactInputParams {
         address tokenIn; // 输入的币
         address tokenOut; // 输出的币
-        uint32[] indexPath;
+        uint32[] indexPath; // 池子下标。
         uint256 amountIn; // 输入的数量
         uint160 sqrtPriceLimitX96; // 限制价格
     }
@@ -66,7 +66,7 @@ interface ISwapRouter is ISwapCallback {
     struct QuoteExactOutputParams {
         address tokenIn; // 输入的币
         address tokenOut; // 输出的币
-        uint32[] indexPath;
+        uint32[] indexPath; // 池子下标。
         uint256 amountOut; // 输出的数量
         uint160 sqrtPriceLimitX96; // 限制价格
     }
