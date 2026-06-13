@@ -449,5 +449,70 @@ contract Pool is IPool {
             // 正数。 input
             swapState.amountCalculated += in256;
         }
+
+        // 计算amount 。
+        // 4种情况。
+        if (zeroForOne == exactInput) {
+            amount0 = amountSpecified - swapState.amountSpecifiedRemaining;
+            amount1 = swapState.amountCalculated;
+        } else {
+            amount0 = swapState.amountCalculated;
+            amount1 = amountSpecified - swapState.amountSpecifiedRemaining;
+        }
+
+        // 用 token0 换 token1 。 amount0 是正数。 amount1 是负数。
+        if (zeroForOne) {
+            uint256 balance0Before = balance0();
+
+            // 回调。 把 token0 转给池子。
+            ISwapCallback(msg.sender).swapCallback(amount0, amount1, data);
+
+            // 判断池子余额。
+            require(
+                balance0Before + uint256(amount0) <= balance0(),
+                "swapCallback not match"
+            );
+
+            // 池子把 token1 转给 用户
+            if (amount1 < 0) {
+                TransferHelper.safeTransfer(
+                    token1,
+                    recipient,
+                    uint256(-amount1)
+                );
+            }
+        }
+        // 用 token1 换 token0 。 amount1 是正数。 amount0 是负数。
+        else {
+            uint256 balance1Before = balance1();
+
+            // 回调。 把 token1 转给 池子。
+            ISwapCallback(msg.sender).swapCallback(amount0, amount1, data);
+
+            // 判断池子余额。
+            require(
+                balance1Before + uint256(amount1) <= balance1(),
+                "swapCallback not match"
+            );
+
+            // 池子把 token0 转给 用户
+            if (amount0 < 0) {
+                TransferHelper.safeTransfer(
+                    token0,
+                    recipient,
+                    uint256(-amount0)
+                );
+            }
+        }
+
+        emit Swap(
+            msg.sender,
+            recipient,
+            amount0,
+            amount1,
+            sqrtPriceX96,
+            liquidity,
+            tick
+        );
     }
 }
