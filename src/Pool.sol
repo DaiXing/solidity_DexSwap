@@ -59,8 +59,8 @@ contract Pool is IPool {
     // 寸头。仓位。
     struct Position {
         uint128 liquidity; // 流动性
-        uint128 token0Owed; // 可提取的 token0 数量
-        uint128 token1Owed; // 可提取的 token1 数量
+        uint128 token0Owed; // 可提取的 token0 数量。手续费。
+        uint128 token1Owed; // 可提取的 token1 数量。手续费。
         uint256 feeGrowthInside0LastX128; // 上次提取手续费时的 feeGrowthGlobal0X128
         uint256 feeGrowthInside1LastX128; // 上次提取手续费时的 feeGrowthGlobal1X128
     }
@@ -137,19 +137,52 @@ contract Pool is IPool {
         amount0 = SqrtPriceMath.getAmount0Delta(
             sqrtPriceX96,
             priceUpper,
-            params.liquidityDelta,
-            true
+            params.liquidityDelta
         );
         amount1 = SqrtPriceMath.getAmount1Delta(
             priceLower,
             sqrtPriceX96,
-            params.liquidityDelta,
-            true
+            params.liquidityDelta
         );
 
         // 仓位。
         Position memory pos = positions[params.owner];
 
         // 提取手续费。增量。
+        uint128 tokensOwed0 = uint128(
+            FullMath.mulDiv(
+                feeGrowthGlobal0X128 - pos.feeGrowthInside0LastX128, // 增量
+                pos.liquidity, // 流动性
+                FixedPoint128.Q128 //倍数
+            )
+        );
+        uint128 tokensOwed1 = uint128(
+            FullMath.mulDiv(
+                feeGrowthGlobal1X128 - pos.feeGrowthInside1LastX128, // 增量
+                pos.liquidity, // 流动性
+                FixedPoint128.Q128 //倍数
+            )
+        );
+
+        // 更新手续费的记录。
+        pos.feeGrowthInside0LastX128 = feeGrowthGlobal0X128;
+        pos.feeGrowthInside1LastX128 = feeGrowthGlobal1X128;
+
+        // 保存手续费。
+        if (tokensOwed0 > 0) {
+            pos.token0Owed += tokensOwed0;
+        }
+        if (tokensOwed1 > 0) {
+            pos.token1Owed += tokensOwed1;
+        }
+
+        // 修改流动性。
+        // 池子流动性。
+        liquidity = LiquidityMath.addDelta(liquidity, param.liquidityDelta);
+        // 仓位流动性。
+        pos.liquidity = LiquidityMath.addDelta(
+            pos.liquidity,
+            param.liquidityDelta
+        );
     }
 }

@@ -199,7 +199,7 @@ library SqrtPriceMath {
         uint160 sqrtRatioBX96,
         uint128 liquidity,
         bool roundUp
-    ) public pure returns (uint256 amount0) {
+    ) internal pure returns (uint256 amount0) {
         if (sqrtRatioAX96 > sqrtRatioBX96)
             (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
 
@@ -234,7 +234,7 @@ library SqrtPriceMath {
         uint160 sqrtRatioBX96,
         uint128 liquidity,
         bool roundUp
-    ) public pure returns (uint256 amount1) {
+    ) internal pure returns (uint256 amount1) {
         if (sqrtRatioAX96 > sqrtRatioBX96)
             (sqrtRatioAX96, sqrtRatioBX96) = (sqrtRatioBX96, sqrtRatioAX96);
 
@@ -261,7 +261,7 @@ library SqrtPriceMath {
         uint160 sqrtRatioAX96,
         uint160 sqrtRatioBX96,
         int128 liquidity
-    ) internal pure returns (int256 amount0) {
+    ) public pure returns (int256 amount0) {
         return
             liquidity < 0
                 ? -getAmount0Delta(
@@ -287,7 +287,7 @@ library SqrtPriceMath {
         uint160 sqrtRatioAX96,
         uint160 sqrtRatioBX96,
         int128 liquidity
-    ) internal pure returns (int256 amount1) {
+    ) public pure returns (int256 amount1) {
         return
             liquidity < 0
                 ? -getAmount1Delta(
