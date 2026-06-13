@@ -146,7 +146,7 @@ contract Pool is IPool {
         );
 
         // 仓位。
-        Position memory pos = positions[params.owner];
+        Position storage pos = positions[params.owner];
 
         // 提取手续费。增量。
         uint128 tokensOwed0 = uint128(
@@ -178,11 +178,84 @@ contract Pool is IPool {
 
         // 修改流动性。
         // 池子流动性。
-        liquidity = LiquidityMath.addDelta(liquidity, param.liquidityDelta);
+        liquidity = LiquidityMath.addDelta(liquidity, params.liquidityDelta);
         // 仓位流动性。
         pos.liquidity = LiquidityMath.addDelta(
             pos.liquidity,
-            param.liquidityDelta
+            params.liquidityDelta
         );
     }
+
+    // 池子拥有的token0
+    function balance0() public returns (uint256) {
+        (bool ok, bytes memory data) = token0.staticcall(
+            abi.encodeWithSelector(IERC20.balanceOf.selector, address(this))
+        );
+        require(ok && data.length >= 32);
+        return abi.decode(data, (uint256));
+    }
+
+    // 池子拥有的token1
+    function balance1() public returns (uint256) {
+        (bool ok, bytes memory data) = token1.staticcall(
+            abi.encodeWithSelector(IERC20.balanceOf.selector, address(this))
+        );
+        require(ok && data.length >= 32);
+        return abi.decode(data, (uint256));
+    }
+
+    // 币铸造。 修改仓位的流动性。
+    function mint(
+        address recipient, // 归属人
+        uint128 amount, // 数量。就是流动性。
+        bytes calldata data
+    ) public returns (uint256 amount0, uint256 amount1) {
+        require(amount > 0, "amount need > 0 ");
+
+        // 用 amount 算出需要的 amount0 amount1
+        (uint256 amount0X, uint256 amount1X) = _modifyPosition(
+            ModifyPositionParams({
+                owner: recipient, // 找仓位。
+                liquidityDelta: int128(amount) // 流动性
+            })
+        );
+        amount0 = uint256(amount0X);
+        amount1 = uint256(amount1X);
+
+        // 当前池子拥有的 token0 token1
+        uint256 balance0Before;
+        uint256 balance1Before;
+        if (amount0 > 0) {
+            balance0Before = balance0();
+        }
+        if (amount1 > 0) {
+            balance1Before = balance1();
+        }
+
+        // 回调。
+        // todo msg.sender 怎么关联 IMintCallback ？
+        IMintCallback(msg.sender).mintCallback(amount0, amount1, data);
+
+        if (amount0 > 0) {
+            require(
+                balance0Before.add(amount0) <= balance0(),
+                "balance0 invalid"
+            );
+        }
+        if (amount1 > 0) {
+            require(
+                balance1Before.add(amount1) <= balance1(),
+                "balance1 invalid"
+            );
+        }
+
+        emit Mint(msg.sender, recipient, amount, amount0, amount1);
+    }
+
+    // 领取
+    function collect(
+        address recipient, // 归属人
+        uint128 amount0Requested, // 币0，要求数量
+        uint128 amount1Requested // 币1，要求数量
+    ) external returns (uint256 amount0, uint256 amount1) {}
 }

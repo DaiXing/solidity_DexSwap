@@ -45,14 +45,15 @@ interface IPool {
     event Mint(
         address sender,
         address indexed owner, // 币的所有者。
-        uint128 amount,
-        uint256 amount0,
-        uint256 amount1
+        uint128 amount, // 总量。
+        uint256 amount0, // token0 数量
+        uint256 amount1 // token1 数量
     );
+
     // 币铸造。
     function mint(
         address recipient, // 归属人
-        uint128 amount, // 数量。
+        uint128 amount, // 数量。 流动性。
         bytes calldata data
     ) external returns (uint256 amount0, uint256 amount1);
 
@@ -68,7 +69,7 @@ interface IPool {
         address recipient, // 归属人
         uint128 amount0Requested, // 币0，要求数量
         uint128 amount1Requested // 币1，要求数量
-    ) external;
+    ) external returns (uint256 amount0, uint256 amount1);
 
     // 销毁。
     event Burn(
@@ -110,6 +111,7 @@ interface IMintCallback {
         bytes calldata data // 数据
     ) external;
 }
+
 // 交换的回调
 interface ISwapCallback {
     function swapCallback(
