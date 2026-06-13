@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 // 头寸、仓位。
-interface IPositionManager is IERC721 {
+interface IPositionManager is IERC721, IMintCallback {
     // 头寸、仓位。
     struct PositionInfo {
         uint256 id; // 仓位ID

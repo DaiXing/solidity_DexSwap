@@ -125,6 +125,32 @@ contract PositionManager is IPositionManager, ERC721 {
         });
     }
 
+    // 铸造。回调。
+    function mintCallback(
+        uint256 amount0, // 币0，数量
+        uint256 amount1, // 币1，数量
+        bytes calldata data
+    ) external {
+        // 解码。
+        (address token0, address token1, uint32 index, address payer) = abi
+            .decode(data, (address, address, uint32, address));
+
+        // 池子
+        address poolAddr = poolManager.getPool(token0, token1, index);
+        IPool pool = IPool(poolAddr);
+
+        // 池子调过来的。
+        require(poolAddr == msg.sender, "caller is not pool");
+
+        // 转账，给池子。
+        if (amount0 > 0) {
+            IERC20(token0).transferFrom(payer, poolAddr, amount0);
+        }
+        if (amount1 > 0) {
+            IERC20(token1).transferFrom(payer, poolAddr, amount1);
+        }
+    }
+
     modifier isAuthorizedForToken(uint256 tokenId) {
         address owner = ownerOf(tokenId);
         require(_isAuthorized(owner, msg.sender, tokenId), "Not approved");
@@ -136,6 +162,7 @@ contract PositionManager is IPositionManager, ERC721 {
         uint256 positionId // 仓位ID
     )
         external
+        isAuthorizedForToken(positionId)
         returns (
             uint256 amount0, // 币0，数量
             uint256 amount1 // 币1，数量
@@ -185,5 +212,46 @@ contract PositionManager is IPositionManager, ERC721 {
         pos.feeGrowthInside0LastX128 = feeGrowthInside0LastX128;
         pos.feeGrowthInside1LastX128 = feeGrowthInside1LastX128;
         pos.liquidity = 0;
+    }
+
+    // 领取。
+    function collect(
+        uint256 positionId, // 仓位ID
+        address recipient // 持有人
+    )
+        external
+        isAuthorizedForToken(positionId)
+        returns (
+            uint256 amount0, // 币0，数量
+            uint256 amount1 // 币1，数量
+        )
+    {
+        // 头寸
+        PositionInfo storage pos = positions[positionId];
+        uint128 liquidity = pos.liquidity;
+
+        // 池子
+        address poolAddr = poolManager.getPool(
+            pos.token0,
+            pos.token1,
+            pos.index
+        );
+        IPool pool = IPool(poolAddr);
+
+        // 全部领取。
+        (amount0, amount1) = pool.collect(
+            recipient,
+            pos.tokensOwed0,
+            pos.tokensOwed1
+        );
+
+        // 更新信息。
+        pos.tokensOwed0 = 0;
+        pos.tokensOwed1 = 0;
+
+        // todo 彻底清理？
+        if (pos.liquidity == 0) {
+            _burn(positionId);
+        }
     }
 }
