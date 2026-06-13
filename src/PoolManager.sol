@@ -58,4 +58,36 @@ contract PoolManager is IPoolManager, Factory {
             }
         }
     }
+
+    // 如果需要，就创建、初始化池子。
+    function createAndInitializePoolIfNecessary(
+        CreateAndInitializeParams calldata params
+    ) external payable returns (address poolAddr) {
+        require(params.token0 < params.token1, "token0 must < token1 ");
+
+        // 创建池子。如果有，就复用。
+        poolAddr = createPool(
+            params.token0,
+            params.token1,
+            params.tickLower,
+            params.tickUpper,
+            params.fee
+        );
+
+        uint256 poolSize = pools[token0][token1].length;
+        IPool pool = IPool(poolAddr);
+
+        // 新池子，没有初始化价格。
+        if (pool.sqrtPriceX96() == 0) {
+            // 初始化价格。
+            pool.initialize(params.sqrtPriceX96);
+
+            // 这个列表的首个池子。
+            if (poolSize == 1) {
+                pairs.push(
+                    Pair({token0: params.token0, token1: params.token1})
+                );
+            }
+        }
+    }
 }

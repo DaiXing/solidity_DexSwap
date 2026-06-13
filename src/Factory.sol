@@ -45,6 +45,7 @@ contract Factory is IFactory {
         // 检查已有的池子。
         address[] memory poolList = pools[token0][token1];
 
+        // 可能存在了。
         for (uint256 index = 0; index < poolList.length; index++) {
             address poolAddr = poolList[index];
             IPool pool = IPool(poolAddr);
