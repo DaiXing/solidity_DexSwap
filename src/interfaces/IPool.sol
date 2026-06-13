@@ -102,7 +102,7 @@ interface IPool {
         uint256 amountSpecified, // 数量。正负
         uint160 sqrtPriceLimitX96, // 限制价格
         int24 tick // tick
-    ) external;
+    ) external returns (int256 amount0, int256 amount1);
 }
 
 // 铸造的回调

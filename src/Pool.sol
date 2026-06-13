@@ -272,14 +272,16 @@ contract Pool is IPool {
             ? pos.token1Owed
             : amount1Requested;
 
-        // 转账。
+        // 转账。 减少自己的token
         if (amount0 > 0) {
             pos.token0Owed -= amount0;
-            TransferHelper.safeTransfer(msg.sender, recipient, amount0);
+            // 从池子转出去。
+            TransferHelper.safeTransfer(token0, recipient, amount0);
         }
         if (amount1 > 0) {
             pos.token1Owed -= amount1;
-            TransferHelper.safeTransfer(msg.sender, recipient, amount1);
+            // 从池子转出去。
+            TransferHelper.safeTransfer(token1, recipient, amount1);
         }
 
         emit Collect(msg.sender, recipient, amount0, amount1);
@@ -296,7 +298,7 @@ contract Pool is IPool {
 
         require(pos.liquidity >= amount, "amount must <= liquidity");
 
-        // 修改仓位。
+        // 修改仓位。 返回负数。
         (int256 amount0x, int256 amount1x) = _modifyPosition(
             ModifyPositionParams({
                 owner: msg.sender,
@@ -304,8 +306,80 @@ contract Pool is IPool {
             })
         );
 
-        // 减少的值。
+        // 减少的值。 负数转正数
         amount0 = uint256(-amount0x);
         amount1 = uint256(-amount1x);
+
+        // 累加。放入待领取。
+        if (amount0 > 0) {
+            pos.token0Owed += amount0;
+        }
+        if (amount1 > 0) {
+            pos.token1Owed += amount1;
+        }
+
+        emit Burn(msg.sender, amount, amount0, amount1);
+    }
+
+    // 交易的状态。 走完一个交易流程。
+    struct SwapState {
+        int256 amountSpecifiedRemaining; // 剩余交换的数量
+        int256 amountCalculated; // 已经交换的数量
+        uint160 sqrtPriceX96; // 当前价格
+        uint256 feeGrowthGlobalX128; // input token 的手续费
+        uint256 amountIn; // 转入，token0数量
+        uint256 amountOut; // 转出，token1数量
+        uint256 feeAmount; // 手续费。
+    }
+
+    // 交换。交易。
+    function swap(
+        address recipient, // 归属人
+        bool zeroForOne, // 用token0换token1 。输入、输出。
+        uint256 amountSpecified, // 数量。正负
+        uint160 sqrtPriceLimitX96, // 限制价格
+        int24 tick // tick
+    ) external returns (int256 amount0, int256 amount1) {
+        require(amountSpecified != 0, "amountSpecified invalid");
+
+        // 用 token0 换 token1
+        if (zeroForOne) {
+            // 限价，小于当前价格。
+            require(
+                sqrtPriceLimitX96 < sqrtPriceX96 &&
+                    sqrtPriceLimitX96 > TickMath.MIN_SQRT_PRICE,
+                "sqrtPriceLimitX96 invlaid"
+            );
+        }
+        // 用 token1 换 token0
+        else {
+            // 限价，大于当前价格。
+            require(
+                sqrtPriceLimitX96 > sqrtPriceX96 &&
+                    sqrtPriceLimitX96 < TickMath.MAX_SQRT_PRICE,
+                "sqrtPriceLimitX96 invlaid"
+            );
+        }
+
+        // 大于0，指定 token0 数量。
+        // 小于0，指定 token1 数量。
+        bool exactInput = amountSpecified > 0;
+
+        // 上下文。
+        SwapState memory swapState = SwapState({
+            amountSpecifiedRemaining: amountSpecified,
+            amountCalculated: 0,
+            sqrtPriceX96: sqrtPriceX96,
+            feeGrowthGlobalX128: zeroForOne
+                ? feeGrowthGlobal0X128
+                : feeGrowthGlobal1X128,
+            amountIn: 0,
+            amountOut: 1,
+            feeAmount: 0
+        });
+
+        // 价格区间。
+        uint160 priceLower = TickMath.getSqrtPriceAtTick(tickLower);
+        uint160 priceUpper = TickMath.getSqrtPriceAtTick(tickUpper);
     }
 }
