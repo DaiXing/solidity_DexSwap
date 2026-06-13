@@ -8,7 +8,7 @@ interface IPoolManager is IFactory {
         address pool; // 池子地址
         address token0; // 币0地址
         address token1; // 币1地址
-        uint32 index;
+        uint32 index; // 列表的下标。
         uint24 fee; // 费率
         uint8 feeProtocol; // 费率协议
         int24 tickLower; // tick下界
