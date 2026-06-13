@@ -43,6 +43,7 @@ contract PositionManager is IPositionManager, ERC721 {
     modifier checkDeadline(uint256 deadline) {
         require(deadline >= block.timestamp, "deadline invalid");
     }
+
     // 铸造。
     function mint(
         MintParams calldata params
@@ -87,6 +88,7 @@ contract PositionManager is IPositionManager, ERC721 {
         );
 
         // 铸造。
+        // todo 确定用 address(this) ？ 多个用户的流动性，混合在一起？
         (amount0, amount1) = pool.mint(address(this), liquidity, data);
 
         // ID
@@ -104,5 +106,22 @@ contract PositionManager is IPositionManager, ERC721 {
             uint128 tokensOwed0, // 币0，拥有的数量
             uint128 tokensOwed1 // 币1，拥有的数量
         ) = pool.getPosition(address(this));
+
+        // 头寸。
+        positions[positionId] = PositionInfo({
+            id: positionId,
+            owner: params.recipient,
+            token0: params.token0,
+            token1: params.token1,
+            index: params.index,
+            fee: pool.fee(),
+            liquidity: liquidity,
+            tickLower: pool.tickLower(),
+            tickUpper: pool.tickUpper(),
+            tokensOwed0: 0,
+            tokensOwed1: 0,
+            feeGrowthInside0LastX128: feeGrowthInside0LastX128,
+            feeGrowthInside1LastX128: feeGrowthInside1LastX128
+        });
     }
 }

@@ -66,6 +66,8 @@ contract Pool is IPool {
     }
 
     // 全部仓位。  owner >> position  1个owner只能有1个仓位。
+    // todo 如果 Pool 真的用 mapping(address => Position) 且所有 mint 都传 address(this)，
+    // 那这个映射就形同虚设。这很可能是教学代码为了简化而做的错误示范，生产环境绝对不能这样写。
     mapping(address => Position) positions;
 
     // 查询寸头。
