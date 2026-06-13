@@ -52,7 +52,7 @@ interface IPool {
 
     // 币铸造。 recipient 就是owner
     function mint(
-        address recipient, // 归属人
+        address recipient, // 归属人 owner
         uint128 amount, // 数量。 流动性。
         bytes calldata data
     ) external returns (uint256 amount0, uint256 amount1);

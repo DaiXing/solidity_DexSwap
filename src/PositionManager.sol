@@ -13,7 +13,7 @@ import "./interfaces/IPool.sol";
 import "./interfaces/IPoolManager.sol";
 
 // 寸头。仓位。
-contract PositionManager is IPositionManager, IERC721 {
+contract PositionManager is IPositionManager, ERC721 {
     // 池子管理器。
     IPoolManager public poolManager;
     // ID 从1 开始。
@@ -23,7 +23,7 @@ contract PositionManager is IPositionManager, IERC721 {
 
     constructor(
         address poolManager_
-    ) IERC721("PositionManager", "PositionManager") {
+    ) ERC721("PositionManager", "PositionManager") {
         poolManager = IPoolManager(poolManager_);
     }
 
@@ -56,6 +56,53 @@ contract PositionManager is IPositionManager, IERC721 {
             uint256 amount1 // 币1，数量
         )
     {
-        poolManager.getPool(params.token0, params.token1, params.index);
+        // 池子。
+        address poolAddr = poolManager.getPool(
+            params.token0,
+            params.token1,
+            params.index
+        );
+        IPool pool = IPool(poolAddr);
+
+        // 价格。
+        uint160 sqrtPriceX96 = pool.sqrtPriceX96();
+        uint160 sqrtRatioAX96 = TickMath.getSqrtPriceAtTick(pool.tickLower());
+        uint160 sqrtRatioBX96 = TickMath.getSqrtPriceAtTick(pool.tickUpper());
+
+        // 用 价格、数量，得到 流动性
+        liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            sqrtRatioAX96,
+            sqrtRatioBX96,
+            params.amount0Desired,
+            params.amount1Desired
+        );
+
+        // 回调。 包装数据。
+        bytes memory data = abi.encode(
+            params.token0,
+            params.token1,
+            params.index,
+            msg.sender
+        );
+
+        // 铸造。
+        (amount0, amount1) = pool.mint(address(this), liquidity, data);
+
+        // ID
+        positionId = _nextId;
+        _nextId++;
+
+        // 给用户 NFT
+        _mint(params.recipient, positionId);
+
+        // 查询仓位。
+        (
+            uint128 liquidity, // 流动性
+            uint256 feeGrowthInside0LastX128, // 币0，未提取的手续费
+            uint256 feeGrowthInside1LastX128, // 币1，未提取的手续费
+            uint128 tokensOwed0, // 币0，拥有的数量
+            uint128 tokensOwed1 // 币1，拥有的数量
+        ) = pool.getPosition(address(this));
     }
 }
