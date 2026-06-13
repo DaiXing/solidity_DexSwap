@@ -93,34 +93,6 @@ contract Pool is IPool {
         );
     }
 
-    // 币铸造。
-    function mint(
-        address recipient, // 归属人
-        uint128 amount, // 数量。
-        bytes calldata data
-    ) external returns (uint256 amount0, uint256 amount1);
-
-    // 领取
-    function collect(
-        address recipient, // 归属人
-        uint128 amount0Requested, // 币0，要求数量
-        uint128 amount1Requested // 币1，要求数量
-    ) external;
-
-    // 销毁。
-    function burn(
-        uint128 amount
-    ) external returns (uint256 amount0, uint256 amount1);
-
-    // 交换。交易。
-    function swap(
-        address recipient, // 归属人
-        bool zeroForOne, // 用token0换token1 。输入、输出。
-        uint256 amountSpecified, // 数量。正负
-        uint160 sqrtPriceLimitX96, // 限制价格
-        int24 tick // tick
-    ) external;
-
     // 修改仓位。
     struct ModifyPositionParams {
         address owner;
