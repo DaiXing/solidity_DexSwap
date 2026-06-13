@@ -126,14 +126,17 @@ contract Pool is IPool {
         address owner;
         int128 liquidityDelta; // 流动性，变量。
     }
+
     // 修改仓位。
+    // 增加流动性。返回正数。
+    // 减少流动性。返回负数。
     function _modifyPosition(
         ModifyPositionParams memory params
-    ) private returns (uint256 amount0, uint256 amount1) {
+    ) private returns (int256 amount0, int256 amount1) {
         uint160 priceLower = TickMath.getSqrtPriceAtTick(tickLower);
         uint160 priceUpper = TickMath.getSqrtPriceAtTick(tickUpper);
 
-        // 通过新增的流动性计算 amount0 和 amount1
+        // 流动性，对应的 amount0 和 amount1
         amount0 = SqrtPriceMath.getAmount0Delta(
             sqrtPriceX96,
             priceUpper,
@@ -213,7 +216,7 @@ contract Pool is IPool {
         require(amount > 0, "amount need > 0 ");
 
         // 用 amount 算出需要的 amount0 amount1
-        (uint256 amount0X, uint256 amount1X) = _modifyPosition(
+        (int256 amount0X, int256 amount1X) = _modifyPosition(
             ModifyPositionParams({
                 owner: recipient, // 找仓位。
                 liquidityDelta: int128(amount) // 流动性
@@ -280,5 +283,29 @@ contract Pool is IPool {
         }
 
         emit Collect(msg.sender, recipient, amount0, amount1);
+    }
+
+    // 销毁。
+    function burn(
+        uint128 amount // 数量。 流动性。
+    ) external returns (uint256 amount0, uint256 amount1) {
+        require(amount > 0, "amount must > 0 ");
+
+        // owner的仓位。
+        Position storage pos = positions[msg.sender];
+
+        require(pos.liquidity >= amount, "amount must <= liquidity");
+
+        // 修改仓位。
+        (int256 amount0x, int256 amount1x) = _modifyPosition(
+            ModifyPositionParams({
+                owner: msg.sender,
+                liquidityDelta: -int128(amount) // 减去。
+            })
+        );
+
+        // 减少的值。
+        amount0 = uint256(-amount0x);
+        amount1 = uint256(-amount1x);
     }
 }
